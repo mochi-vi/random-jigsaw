@@ -15,7 +15,7 @@
 
   const COLS = 10;
   const ROWS = 5;
-  const TOTAL = 50;
+  const PIECES = COLS * ROWS;
 
   const board = document.getElementById("board");
   const preview = document.getElementById("preview");
@@ -24,17 +24,448 @@
 
   let currentUrl = null;
   let pieces = [];
-  let lockedCount = 0;
-  let solved = false;
-  let timerId = null;
   let startTime = 0;
+  let timerId = null;
+  let solved = false;
   let zIndex = 10;
 
+  function chooseImage() {
+    let choices = IMAGE_URLS.filter(url => url !== currentUrl);
 
-  // ==============================
-  // RANDOM IMAGE
-  // ==============================
+    if (!choices.length) {
+      choices = IMAGE_URLS;
+    }
 
+    return choices[Math.floor(Math.random() * choices.length)];
+  }
+
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+
+    return (
+      String(minutes).padStart(2, "0") +
+      ":" +
+      String(secs).padStart(2, "0")
+    );
+  }
+
+  function startTimer() {
+    clearInterval(timerId);
+
+    startTime = Date.now();
+
+    timerId = setInterval(() => {
+      timerEl.textContent = formatTime(
+        Math.floor((Date.now() - startTime) / 1000)
+      );
+    }, 250);
+  }
+
+  function createPiece(index, imageUrl, boardWidth, boardHeight) {
+
+    const col = index % COLS;
+    const row = Math.floor(index / COLS);
+
+    const pieceWidth = boardWidth / COLS;
+    const pieceHeight = boardHeight / ROWS;
+
+    const piece = document.createElement("div");
+
+    piece.className = "piece";
+
+    piece.dataset.correct = index;
+    piece.dataset.locked = "false";
+
+    piece.style.width = pieceWidth + "px";
+    piece.style.height = pieceHeight + "px";
+
+    piece.style.backgroundImage = `url("${imageUrl}")`;
+    piece.style.backgroundSize =
+      boardWidth + "px " + boardHeight + "px";
+
+    piece.style.backgroundPosition =
+      "-" + col * pieceWidth + "px " +
+      "-" + row * pieceHeight + "px";
+
+    /*
+      Start at a random location.
+    */
+
+    const maxX = Math.max(0, boardWidth - pieceWidth);
+    const maxY = Math.max(0, boardHeight - pieceHeight);
+
+    piece.style.left =
+      Math.random() * maxX + "px";
+
+    piece.style.top =
+      Math.random() * maxY + "px";
+
+
+    let dragging = null;
+
+
+    /*
+      START DRAG
+    */
+
+    function pointerDown(e) {
+
+      // IMPORTANT:
+      // If this piece is already locked,
+      // absolutely nothing happens.
+
+      if (piece.dataset.locked === "true") {
+        return;
+      }
+
+      if (solved) {
+        return;
+      }
+
+      e.preventDefault();
+
+      const rect = piece.getBoundingClientRect();
+
+      dragging = {
+        pointerId: e.pointerId,
+        offsetX: e.clientX - rect.left,
+        offsetY: e.clientY - rect.top
+      };
+
+      piece.setPointerCapture?.(e.pointerId);
+
+      piece.classList.add("dragging");
+
+      piece.style.zIndex = ++zIndex;
+    }
+
+
+    /*
+      MOVE PIECE
+    */
+
+    function pointerMove(e) {
+
+      if (!dragging) return;
+
+      if (e.pointerId !== dragging.pointerId) {
+        return;
+      }
+
+      e.preventDefault();
+
+      const boardRect = board.getBoundingClientRect();
+
+      let x =
+        e.clientX -
+        boardRect.left -
+        dragging.offsetX;
+
+      let y =
+        e.clientY -
+        boardRect.top -
+        dragging.offsetY;
+
+
+      x = Math.max(
+        0,
+        Math.min(
+          board.clientWidth - piece.offsetWidth,
+          x
+        )
+      );
+
+      y = Math.max(
+        0,
+        Math.min(
+          board.clientHeight - piece.offsetHeight,
+          y
+        )
+      );
+
+
+      piece.style.left = x + "px";
+      piece.style.top = y + "px";
+    }
+
+
+    /*
+      RELEASE PIECE
+    */
+
+    function pointerUp(e) {
+
+      if (!dragging) return;
+
+      if (e.pointerId !== dragging.pointerId) {
+        return;
+      }
+
+      dragging = null;
+
+      piece.classList.remove("dragging");
+
+
+      /*
+        CHECK THIS PIECE ONLY.
+      */
+
+      const correctIndex = Number(
+        piece.dataset.correct
+      );
+
+      const correctCol =
+        correctIndex % COLS;
+
+      const correctRow =
+        Math.floor(correctIndex / COLS);
+
+
+      const targetX =
+        correctCol *
+        (board.clientWidth / COLS);
+
+      const targetY =
+        correctRow *
+        (board.clientHeight / ROWS);
+
+
+      const currentX =
+        parseFloat(piece.style.left);
+
+      const currentY =
+        parseFloat(piece.style.top);
+
+
+      const tolerance =
+        Math.min(
+          board.clientWidth / COLS,
+          board.clientHeight / ROWS
+        ) * 0.30;
+
+
+      /*
+        IF CLOSE ENOUGH:
+        SNAP + LOCK.
+      */
+
+      if (
+        Math.abs(currentX - targetX) <= tolerance &&
+        Math.abs(currentY - targetY) <= tolerance
+      ) {
+
+        // Snap exactly into position
+        piece.style.left = targetX + "px";
+        piece.style.top = targetY + "px";
+
+        // LOCK IT
+        piece.dataset.locked = "true";
+
+        // Give it a locked appearance
+        piece.classList.add("locked");
+
+        // Put locked piece behind pieces being dragged
+        piece.style.zIndex = 1;
+
+        checkPuzzleComplete();
+      }
+    }
+
+
+    piece.addEventListener(
+      "pointerdown",
+      pointerDown,
+      { passive: false }
+    );
+
+    piece.addEventListener(
+      "pointermove",
+      pointerMove,
+      { passive: false }
+    );
+
+    piece.addEventListener(
+      "pointerup",
+      pointerUp
+    );
+
+    piece.addEventListener(
+      "pointercancel",
+      pointerUp
+    );
+
+
+    board.appendChild(piece);
+
+    return piece;
+  }
+
+
+  /*
+    CHECK WHETHER ALL 50 PIECES ARE LOCKED.
+  */
+
+  function checkPuzzleComplete() {
+
+    const lockedPieces =
+      pieces.filter(
+        piece =>
+          piece.dataset.locked === "true"
+      ).length;
+
+
+    message.textContent =
+      lockedPieces +
+      " / " +
+      PIECES +
+      " pieces placed";
+
+
+    if (lockedPieces === PIECES) {
+
+      solved = true;
+
+      clearInterval(timerId);
+
+      message.textContent =
+        "🎉 Puzzle complete! " +
+        timerEl.textContent;
+    }
+  }
+
+
+  /*
+    CREATE NEW PUZZLE
+  */
+
+  function loadPuzzle() {
+
+    const imageUrl = chooseImage();
+
+    currentUrl = imageUrl;
+
+    solved = false;
+
+    pieces = [];
+
+    board.innerHTML = "";
+
+    message.textContent =
+      "Hold and drag each piece into place.";
+
+    if (preview) {
+      preview.src = imageUrl;
+    }
+
+
+    /*
+      Wait until board dimensions are available.
+    */
+
+    requestAnimationFrame(() => {
+
+      const boardWidth =
+        board.clientWidth;
+
+      const boardHeight =
+        board.clientHeight;
+
+
+      const order =
+        shuffle(
+          [...Array(PIECES).keys()]
+        );
+
+
+      for (const index of order) {
+
+        const piece =
+          createPiece(
+            index,
+            imageUrl,
+            boardWidth,
+            boardHeight
+          );
+
+        pieces.push(piece);
+      }
+
+
+      startTimer();
+    });
+  }
+
+
+  /*
+    SHUFFLE
+  */
+
+  document
+    .getElementById("shuffle")
+    .onclick = () => {
+
+      pieces.forEach(piece => {
+
+        // Don't move already completed pieces
+        if (
+          piece.dataset.locked === "true"
+        ) {
+          return;
+        }
+
+        const maxX =
+          Math.max(
+            0,
+            board.clientWidth -
+            piece.offsetWidth
+          );
+
+        const maxY =
+          Math.max(
+            0,
+            board.clientHeight -
+            piece.offsetHeight
+          );
+
+        piece.style.left =
+          Math.random() * maxX + "px";
+
+        piece.style.top =
+          Math.random() * maxY + "px";
+      });
+
+      solved = false;
+
+      message.textContent =
+        "Shuffled — keep going!";
+    };
+
+
+  /*
+    NEW PUZZLE
+  */
+
+  document
+    .getElementById("newPuzzle")
+    .onclick = loadPuzzle;
+
+
+  /*
+    START
+  */
+
+  loadPuzzle();
+
+})();
   function chooseImage() {
 
     let choices =
