@@ -1,16 +1,183 @@
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#111;color:#eee;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-body{min-height:100vh}
-.app{width:min(100%,900px);margin:auto;padding:12px}
-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
-h1{font-size:1.35rem;margin:4px 0 10px}
-#timer{font-variant-numeric:tabular-nums;font-weight:700}
-.reference{margin-bottom:12px}
-.reference h2{font-size:.9rem;margin:4px 0}
-#preview{display:block;width:100%;max-height:260px;object-fit:contain;border-radius:10px;filter:blur(12px);background:#222}
-#board{position:relative;width:100%;max-width:900px;margin:12px auto;height:min(72vh,620px);min-height:330px;background:#202020;border:1px solid #444;border-radius:12px;overflow:hidden;touch-action:none}
-.piece{position:absolute;user-select:none;-webkit-user-select:none;touch-action:none;background-repeat:no-repeat;border:1px solid #888;border-radius:3px;box-shadow:0 2px 5px #0008;cursor:grab}
-.piece.dragging{cursor:grabbing;z-index:999;box-shadow:0 8px 20px #000b}
-.buttons{display:flex;gap:8px;justify-content:center;margin:12px 0}
-button{font:inherit;padding:10px 16px;border:0;border-radius:9px;cursor:pointer}
-#message{text-align:center;min-height:24px}
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #111;
+  color: #eee;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+}
+
+body {
+  min-height: 100vh;
+}
+
+.app {
+  width: min(100%, 900px);
+  margin: auto;
+  padding: 12px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+h1 {
+  font-size: 1.35rem;
+  margin: 4px 0 10px;
+}
+
+#timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* ==========================
+   REFERENCE
+   ========================== */
+
+.reference {
+  margin-bottom: 12px;
+}
+
+.reference h2 {
+  font-size: .9rem;
+  margin: 4px 0;
+}
+
+#preview {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  border-radius: 10px;
+  filter: blur(12px);
+  background: #222;
+}
+
+
+/* ==========================
+   PUZZLE BOARD
+   ========================== */
+
+#board {
+  position: relative;
+
+  width: 100%;
+
+  /*
+    10 columns × 5 rows
+    = 2:1
+  */
+  aspect-ratio: 2 / 1;
+
+  height: auto;
+
+  margin: 12px auto;
+
+  background: #202020;
+
+  border: 1px solid #444;
+
+  border-radius: 12px;
+
+  overflow: hidden;
+
+  touch-action: none;
+}
+
+
+/* ==========================
+   PIECES
+   ========================== */
+
+.piece {
+  position: absolute;
+
+  margin: 0;
+  padding: 0;
+
+  background-repeat: no-repeat;
+
+  border: 1px solid #888;
+
+  border-radius: 0;
+
+  box-shadow:
+    0 2px 5px #0008;
+
+  cursor: grab;
+
+  user-select: none;
+  -webkit-user-select: none;
+
+  touch-action: none;
+}
+
+.piece.dragging {
+  cursor: grabbing;
+
+  z-index: 9999;
+
+  box-shadow:
+    0 8px 20px #000b;
+}
+
+.piece.locked {
+  cursor: default;
+
+  box-shadow: none;
+
+  border-color:
+    rgba(255,255,255,.25);
+}
+
+
+/* ==========================
+   MESSAGE
+   ========================== */
+
+#message {
+  text-align: center;
+
+  min-height: 24px;
+
+  margin: 4px 0;
+}
+
+
+/* ==========================
+   BUTTONS
+   ========================== */
+
+.buttons {
+  display: flex;
+
+  gap: 8px;
+
+  justify-content: center;
+
+  margin: 12px 0;
+}
+
+button {
+  font: inherit;
+
+  padding: 10px 16px;
+
+  border: 0;
+
+  border-radius: 9px;
+
+  cursor: pointer;
+}
