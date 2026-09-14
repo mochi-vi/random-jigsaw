@@ -1,40 +1,749 @@
 (() => {
-  // Put your hosted image URLs here. Keep the order image01...image10 if desired.
+
+  // ============================
+  // YOUR 10 IMAGE URLS
+  // ============================
+
   const IMAGE_URLS = [
-    "PASTE_IMAGE_URL_01_HERE",
-    "PASTE_IMAGE_URL_02_HERE",
-    "PASTE_IMAGE_URL_03_HERE",
-    "PASTE_IMAGE_URL_04_HERE",
-    "PASTE_IMAGE_URL_05_HERE",
-    "PASTE_IMAGE_URL_06_HERE",
-    "PASTE_IMAGE_URL_07_HERE",
-    "PASTE_IMAGE_URL_08_HERE",
-    "PASTE_IMAGE_URL_09_HERE",
-    "PASTE_IMAGE_URL_10_HERE"
+    "https://files.catbox.moe/umamaq.jpeg",
+    "https://files.catbox.moe/5uir2d.jpeg",
+    "https://files.catbox.moe/7xuuma.jpeg",
+    "https://files.catbox.moe/nxffrc.jpeg",
+    "https://files.catbox.moe/vcj6n9.png",
+    "https://files.catbox.moe/8fd9ox.jpeg",
+    "https://files.catbox.moe/mb3n6z.jpeg",
+    "https://files.catbox.moe/kuozzs.jpeg",
+    "https://files.catbox.moe/ugvmgm.jpeg",
+    "https://files.catbox.moe/ent79g.jpeg"
   ];
 
-  const COLS = 10, ROWS = 5, PIECES = COLS * ROWS;
+  // 10 x 5 = 50 pieces
+  const COLS = 10;
+  const ROWS = 5;
+  const TOTAL = COLS * ROWS;
+
   const board = document.getElementById("board");
   const preview = document.getElementById("preview");
   const message = document.getElementById("message");
   const timerEl = document.getElementById("timer");
-  let currentUrl = null, pieces = [], startTime = 0, timerId = null, solved = false;
+  const shuffleBtn = document.getElementById("shuffle");
+  const newPuzzleBtn = document.getElementById("newPuzzle");
 
-  function usableUrls() {
-    return IMAGE_URLS.filter(u => u && !u.includes("PASTE_IMAGE_URL"));
-  }
+  let currentUrl = null;
+  let pieces = [];
+  let lockedCount = 0;
+  let solved = false;
+
+  let timerId = null;
+  let startTime = 0;
+  let zCounter = 10;
+
+
+  // ============================
+  // RANDOM IMAGE
+  // ============================
 
   function chooseImage() {
-    const urls = usableUrls();
-    if (!urls.length) return null;
-    let choices = urls.filter(u => u !== currentUrl);
-    if (!choices.length) choices = urls;
-    return choices[Math.floor(Math.random() * choices.length)];
+
+    let choices =
+      IMAGE_URLS.filter(
+        url => url !== currentUrl
+      );
+
+    if (choices.length === 0) {
+      choices = IMAGE_URLS;
+    }
+
+    return choices[
+      Math.floor(
+        Math.random() * choices.length
+      )
+    ];
   }
 
-  function shuffle(a) {
-    for (let i=a.length-1;i>0;i--) {
-      const j=Math.floor(Math.random()*(i+1));
+
+  // ============================
+  // TIMER
+  // ============================
+
+  function formatTime(seconds) {
+
+    const minutes =
+      Math.floor(seconds / 60);
+
+    const secs =
+      seconds % 60;
+
+    return (
+      String(minutes).padStart(2, "0") +
+      ":" +
+      String(secs).padStart(2, "0")
+    );
+  }
+
+
+  function startTimer() {
+
+    clearInterval(timerId);
+
+    startTime = Date.now();
+
+    timerEl.textContent = "00:00";
+
+    timerId = setInterval(() => {
+
+      const elapsed =
+        Math.floor(
+          (Date.now() - startTime) / 1000
+        );
+
+      timerEl.textContent =
+        formatTime(elapsed);
+
+    }, 250);
+  }
+
+
+  // ============================
+  // GET TILE SIZE
+  // ============================
+
+  function tileSize() {
+
+    return {
+      width:
+        board.clientWidth / COLS,
+
+      height:
+        board.clientHeight / ROWS
+    };
+  }
+
+
+  // ============================
+  // CREATE ONE PIECE
+  // ============================
+
+  function createPiece(index, imageUrl) {
+
+    const col =
+      index % COLS;
+
+    const row =
+      Math.floor(index / COLS);
+
+    const size =
+      tileSize();
+
+    const piece =
+      document.createElement("div");
+
+    piece.className = "piece";
+
+    piece.dataset.index =
+      index;
+
+    piece.dataset.locked =
+      "false";
+
+
+    // ==========================
+    // PIECE SIZE
+    // ==========================
+
+    piece.style.width =
+      size.width + "px";
+
+    piece.style.height =
+      size.height + "px";
+
+
+    // ==========================
+    // IMAGE
+    // ==========================
+
+    piece.style.backgroundImage =
+      `url("${imageUrl}")`;
+
+    piece.style.backgroundRepeat =
+      "no-repeat";
+
+    piece.style.backgroundSize =
+      `${board.clientWidth}px ${board.clientHeight}px`;
+
+    piece.style.backgroundPosition =
+      `-${col * size.width}px ` +
+      `-${row * size.height}px`;
+
+
+    // ==========================
+    // RANDOM START POSITION
+    // ==========================
+
+    const maxX =
+      board.clientWidth -
+      size.width;
+
+    const maxY =
+      board.clientHeight -
+      size.height;
+
+    piece.style.left =
+      Math.random() *
+      Math.max(0, maxX) +
+      "px";
+
+    piece.style.top =
+      Math.random() *
+      Math.max(0, maxY) +
+      "px";
+
+    piece.style.zIndex =
+      ++zCounter;
+
+
+    // ==========================
+    // DRAG VARIABLES
+    // ==========================
+
+    let dragging = false;
+    let pointerId = null;
+    let offsetX = 0;
+    let offsetY = 0;
+
+
+    // ==========================
+    // CHECK WHETHER CORRECT
+    // ==========================
+
+    function checkLock() {
+
+      if (
+        piece.dataset.locked ===
+        "true"
+      ) {
+        return;
+      }
+
+
+      const currentSize =
+        tileSize();
+
+
+      const targetX =
+        col * currentSize.width;
+
+      const targetY =
+        row * currentSize.height;
+
+
+      const currentX =
+        parseFloat(piece.style.left) || 0;
+
+      const currentY =
+        parseFloat(piece.style.top) || 0;
+
+
+      /*
+        30% tolerance.
+        You don't have to place it
+        perfectly.
+      */
+
+      const tolerance =
+        Math.min(
+          currentSize.width,
+          currentSize.height
+        ) * 0.30;
+
+
+      const correct =
+        Math.abs(
+          currentX - targetX
+        ) <= tolerance
+        &&
+        Math.abs(
+          currentY - targetY
+        ) <= tolerance;
+
+
+      if (!correct) {
+        return false;
+      }
+
+
+      // ==========================
+      // SNAP
+      // ==========================
+
+      piece.style.left =
+        targetX + "px";
+
+      piece.style.top =
+        targetY + "px";
+
+
+      // ==========================
+      // LOCK
+      // ==========================
+
+      piece.dataset.locked =
+        "true";
+
+      piece.classList.remove(
+        "dragging"
+      );
+
+      piece.classList.add(
+        "locked"
+      );
+
+      piece.style.zIndex =
+        index + 1;
+
+      lockedCount++;
+
+
+      message.textContent =
+        `${lockedCount} / ${TOTAL} pieces placed`;
+
+
+      // ==========================
+      // COMPLETE
+      // ==========================
+
+      if (
+        lockedCount === TOTAL
+      ) {
+
+        solved = true;
+
+        clearInterval(timerId);
+
+        message.textContent =
+          "🎉 Puzzle complete!";
+      }
+
+
+      return true;
+    }
+
+
+    // ==========================
+    // TOUCH / MOUSE DOWN
+    // ==========================
+
+    piece.addEventListener(
+      "pointerdown",
+      event => {
+
+        if (
+          solved ||
+          piece.dataset.locked ===
+          "true"
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+
+        dragging = true;
+
+        pointerId =
+          event.pointerId;
+
+
+        const pieceRect =
+          piece.getBoundingClientRect();
+
+
+        offsetX =
+          event.clientX -
+          pieceRect.left;
+
+        offsetY =
+          event.clientY -
+          pieceRect.top;
+
+
+        piece.style.zIndex =
+          ++zCounter;
+
+        piece.classList.add(
+          "dragging"
+        );
+
+
+        try {
+          piece.setPointerCapture(
+            pointerId
+          );
+        } catch (e) {}
+
+      },
+      {
+        passive: false
+      }
+    );
+
+
+    // ==========================
+    // DRAG
+    // ==========================
+
+    piece.addEventListener(
+      "pointermove",
+      event => {
+
+        if (
+          !dragging ||
+          event.pointerId !== pointerId
+        ) {
+          return;
+        }
+
+
+        event.preventDefault();
+
+
+        const boardRect =
+          board.getBoundingClientRect();
+
+
+        const currentSize =
+          tileSize();
+
+
+        let x =
+          event.clientX -
+          boardRect.left -
+          offsetX;
+
+
+        let y =
+          event.clientY -
+          boardRect.top -
+          offsetY;
+
+
+        // Keep inside board
+
+        x =
+          Math.max(
+            0,
+            Math.min(
+              board.clientWidth -
+              currentSize.width,
+              x
+            )
+          );
+
+
+        y =
+          Math.max(
+            0,
+            Math.min(
+              board.clientHeight -
+              currentSize.height,
+              y
+            )
+          );
+
+
+        piece.style.left =
+          x + "px";
+
+        piece.style.top =
+          y + "px";
+
+
+        // =========================
+        // INSTANT AUTO LOCK
+        // =========================
+
+        if (
+          checkLock()
+        ) {
+
+          dragging = false;
+
+          try {
+            piece.releasePointerCapture(
+              pointerId
+            );
+          } catch (e) {}
+
+          pointerId = null;
+        }
+
+      },
+      {
+        passive: false
+      }
+    );
+
+
+    // ==========================
+    // RELEASE
+    // ==========================
+
+    piece.addEventListener(
+      "pointerup",
+      event => {
+
+        if (
+          !dragging ||
+          event.pointerId !== pointerId
+        ) {
+          return;
+        }
+
+
+        dragging = false;
+
+        piece.classList.remove(
+          "dragging"
+        );
+
+
+        // One final lock check
+
+        checkLock();
+
+
+        try {
+          piece.releasePointerCapture(
+            pointerId
+          );
+        } catch (e) {}
+
+        pointerId = null;
+      }
+    );
+
+
+    piece.addEventListener(
+      "pointercancel",
+      () => {
+
+        dragging = false;
+
+        piece.classList.remove(
+          "dragging"
+        );
+
+        pointerId = null;
+      }
+    );
+
+
+    board.appendChild(piece);
+
+    return piece;
+  }
+
+
+  // ============================
+  // LOAD PUZZLE
+  // ============================
+
+  function loadPuzzle() {
+
+    clearInterval(timerId);
+
+    board.innerHTML = "";
+
+    pieces = [];
+
+    lockedCount = 0;
+
+    solved = false;
+
+
+    currentUrl =
+      chooseImage();
+
+
+    // Preview page only
+
+    if (preview) {
+      preview.src =
+        currentUrl;
+    }
+
+
+    message.textContent =
+      "Loading puzzle…";
+
+
+    /*
+      IMPORTANT:
+      10 x 5 gives our clean
+      50-piece puzzle.
+    */
+
+    board.style.aspectRatio =
+      "2 / 1";
+
+
+    requestAnimationFrame(() => {
+
+      /*
+        Wait until the board actually
+        has dimensions.
+      */
+
+      const width =
+        board.clientWidth;
+
+      const height =
+        board.clientHeight;
+
+
+      if (
+        width <= 0 ||
+        height <= 0
+      ) {
+
+        setTimeout(
+          loadPuzzle,
+          100
+        );
+
+        return;
+      }
+
+
+      const order =
+        Array.from(
+          { length: TOTAL },
+          (_, i) => i
+        );
+
+
+      // Random order
+
+      for (
+        let i = order.length - 1;
+        i > 0;
+        i--
+      ) {
+
+        const j =
+          Math.floor(
+            Math.random() *
+            (i + 1)
+          );
+
+        [
+          order[i],
+          order[j]
+        ] =
+        [
+          order[j],
+          order[i]
+        ];
+      }
+
+
+      for (
+        const index of order
+      ) {
+
+        pieces.push(
+          createPiece(
+            index,
+            currentUrl
+          )
+        );
+      }
+
+
+      message.textContent =
+        `0 / ${TOTAL} pieces placed`;
+
+      startTimer();
+
+    });
+  }
+
+
+  // ============================
+  // SHUFFLE
+  // ============================
+
+  shuffleBtn.addEventListener(
+    "click",
+    () => {
+
+      if (solved) {
+        return;
+      }
+
+
+      const size =
+        tileSize();
+
+
+      for (
+        const piece of pieces
+      ) {
+
+        // IMPORTANT:
+        // Locked pieces stay locked.
+
+        if (
+          piece.dataset.locked ===
+          "true"
+        ) {
+          continue;
+        }
+
+
+        const maxX =
+          board.clientWidth -
+          size.width;
+
+        const maxY =
+          board.clientHeight -
+          size.height;
+
+
+        piece.style.left =
+          Math.random() *
+          Math.max(0, maxX) +
+          "px";
+
+        piece.style.top =
+          Math.random() *
+          Math.max(0, maxY) +
+          "px";
+      }
+
+
+      message.textContent =
+        `${lockedCount} / ${TOTAL} pieces placed`;
+    }
+  );
+
+
+  // ============================
+  // NEW PUZZLE
+  // ============================
+
+  newPuzzleBtn.addEventListener(
+    "click",
+    loadPuzzle
+  );
+
+
+  // ============================
+  // START
+  // ============================
+
+  loadPuzzle();
+
+})();      const j=Math.floor(Math.random()*(i+1));
       [a[i],a[j]]=[a[j],a[i]];
     }
     return a;
