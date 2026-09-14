@@ -1,9 +1,5 @@
 (() => {
 
-  // ============================
-  // YOUR 10 IMAGE URLS
-  // ============================
-
   const IMAGE_URLS = [
     "https://files.catbox.moe/umamaq.jpeg",
     "https://files.catbox.moe/5uir2d.jpeg",
@@ -17,24 +13,520 @@
     "https://files.catbox.moe/ent79g.jpeg"
   ];
 
-  // 10 x 5 = 50 pieces
   const COLS = 10;
   const ROWS = 5;
-  const TOTAL = COLS * ROWS;
+  const TOTAL = 50;
 
   const board = document.getElementById("board");
   const preview = document.getElementById("preview");
   const message = document.getElementById("message");
   const timerEl = document.getElementById("timer");
-  const shuffleBtn = document.getElementById("shuffle");
-  const newPuzzleBtn = document.getElementById("newPuzzle");
 
   let currentUrl = null;
   let pieces = [];
   let lockedCount = 0;
   let solved = false;
-
   let timerId = null;
+  let startTime = 0;
+  let zIndex = 10;
+
+
+  // ==============================
+  // RANDOM IMAGE
+  // ==============================
+
+  function chooseImage() {
+
+    let choices =
+      IMAGE_URLS.filter(
+        url => url !== currentUrl
+      );
+
+    if (!choices.length) {
+      choices = IMAGE_URLS;
+    }
+
+    return choices[
+      Math.floor(Math.random() * choices.length)
+    ];
+  }
+
+
+  // ==============================
+  // LOAD IMAGE PROPERLY
+  // ==============================
+
+  function loadImage(url) {
+
+    return new Promise((resolve, reject) => {
+
+      const img = new Image();
+
+      img.onload = () => {
+
+        if (
+          img.naturalWidth > 0 &&
+          img.naturalHeight > 0
+        ) {
+          resolve(img);
+        } else {
+          reject(
+            new Error("Image has no dimensions")
+          );
+        }
+
+      };
+
+      img.onerror = () => {
+        reject(
+          new Error("Image failed to load")
+        );
+      };
+
+      img.src = url;
+
+    });
+
+  }
+
+
+  // ==============================
+  // TIMER
+  // ==============================
+
+  function formatTime(seconds) {
+
+    const min =
+      Math.floor(seconds / 60);
+
+    const sec =
+      seconds % 60;
+
+    return (
+      String(min).padStart(2, "0") +
+      ":" +
+      String(sec).padStart(2, "0")
+    );
+  }
+
+
+  function startTimer() {
+
+    clearInterval(timerId);
+
+    startTime = Date.now();
+
+    timerId = setInterval(() => {
+
+      const elapsed =
+        Math.floor(
+          (Date.now() - startTime) / 1000
+        );
+
+      timerEl.textContent =
+        formatTime(elapsed);
+
+    }, 250);
+
+  }
+
+
+  // ==============================
+  // CREATE PIECE
+  // ==============================
+
+  function createPiece(
+    index,
+    imageUrl,
+    imageWidth,
+    imageHeight
+  ) {
+
+    const col =
+      index % COLS;
+
+    const row =
+      Math.floor(index / COLS);
+
+
+    const boardWidth =
+      board.clientWidth;
+
+    const boardHeight =
+      board.clientHeight;
+
+
+    const tileWidth =
+      boardWidth / COLS;
+
+    const tileHeight =
+      boardHeight / ROWS;
+
+
+    const piece =
+      document.createElement("div");
+
+
+    piece.className =
+      "piece";
+
+
+    piece.dataset.index =
+      index;
+
+    piece.dataset.locked =
+      "false";
+
+
+    piece.style.width =
+      tileWidth + "px";
+
+    piece.style.height =
+      tileHeight + "px";
+
+
+    // ==============================
+    // IMAGE
+    // ==============================
+
+    piece.style.backgroundImage =
+      `url("${imageUrl}")`;
+
+    piece.style.backgroundRepeat =
+      "no-repeat";
+
+
+    /*
+      Scale the complete source image
+      to exactly the puzzle board.
+
+      This makes every tile show the
+      correct part of the image.
+    */
+
+    piece.style.backgroundSize =
+      `${boardWidth}px ${boardHeight}px`;
+
+
+    piece.style.backgroundPosition =
+      `-${col * tileWidth}px ` +
+      `-${row * tileHeight}px`;
+
+
+    // ==============================
+    // RANDOM POSITION
+    // ==============================
+
+    const maxX =
+      boardWidth - tileWidth;
+
+    const maxY =
+      boardHeight - tileHeight;
+
+
+    piece.style.left =
+      Math.random() *
+      Math.max(0, maxX) +
+      "px";
+
+
+    piece.style.top =
+      Math.random() *
+      Math.max(0, maxY) +
+      "px";
+
+
+    piece.style.zIndex =
+      ++zIndex;
+
+
+    // ==============================
+    // DRAG
+    // ==============================
+
+    let dragging = false;
+    let pointerId = null;
+    let offsetX = 0;
+    let offsetY = 0;
+
+
+    piece.addEventListener(
+      "pointerdown",
+      event => {
+
+        if (
+          solved ||
+          piece.dataset.locked ===
+          "true"
+        ) {
+          return;
+        }
+
+
+        event.preventDefault();
+
+
+        dragging = true;
+
+        pointerId =
+          event.pointerId;
+
+
+        const rect =
+          piece.getBoundingClientRect();
+
+
+        offsetX =
+          event.clientX -
+          rect.left;
+
+        offsetY =
+          event.clientY -
+          rect.top;
+
+
+        piece.classList.add(
+          "dragging"
+        );
+
+
+        piece.style.zIndex =
+          ++zIndex;
+
+
+        try {
+          piece.setPointerCapture(
+            pointerId
+          );
+        } catch (e) {}
+
+      },
+      {
+        passive: false
+      }
+    );
+
+
+    piece.addEventListener(
+      "pointermove",
+      event => {
+
+        if (
+          !dragging ||
+          event.pointerId !== pointerId
+        ) {
+          return;
+        }
+
+
+        event.preventDefault();
+
+
+        const boardRect =
+          board.getBoundingClientRect();
+
+
+        let x =
+          event.clientX -
+          boardRect.left -
+          offsetX;
+
+
+        let y =
+          event.clientY -
+          boardRect.top -
+          offsetY;
+
+
+        x =
+          Math.max(
+            0,
+            Math.min(
+              boardWidth - tileWidth,
+              x
+            )
+          );
+
+
+        y =
+          Math.max(
+            0,
+            Math.min(
+              boardHeight - tileHeight,
+              y
+            )
+          );
+
+
+        piece.style.left =
+          x + "px";
+
+        piece.style.top =
+          y + "px";
+
+
+        // AUTO LOCK
+
+        if (
+          checkPiecePosition(
+            piece,
+            index,
+            col,
+            row
+          )
+        ) {
+
+          dragging = false;
+
+          piece.classList.remove(
+            "dragging"
+          );
+
+          try {
+            piece.releasePointerCapture(
+              pointerId
+            );
+          } catch (e) {}
+
+          pointerId = null;
+        }
+
+      },
+      {
+        passive: false
+      }
+    );
+
+
+    piece.addEventListener(
+      "pointerup",
+      event => {
+
+        if (
+          !dragging ||
+          event.pointerId !== pointerId
+        ) {
+          return;
+        }
+
+
+        dragging = false;
+
+        piece.classList.remove(
+          "dragging"
+        );
+
+
+        checkPiecePosition(
+          piece,
+          index,
+          col,
+          row
+        );
+
+
+        try {
+          piece.releasePointerCapture(
+            pointerId
+          );
+        } catch (e) {}
+
+        pointerId = null;
+
+      }
+    );
+
+
+    piece.addEventListener(
+      "pointercancel",
+      () => {
+
+        dragging = false;
+
+        piece.classList.remove(
+          "dragging"
+        );
+
+        pointerId = null;
+
+      }
+    );
+
+
+    board.appendChild(piece);
+
+    return piece;
+  }
+
+
+  // ==============================
+  // AUTO LOCK
+  // ==============================
+
+  function checkPiecePosition(
+    piece,
+    index,
+    col,
+    row
+  ) {
+
+    if (
+      piece.dataset.locked ===
+      "true"
+    ) {
+      return true;
+    }
+
+
+    const tileWidth =
+      board.clientWidth / COLS;
+
+    const tileHeight =
+      board.clientHeight / ROWS;
+
+
+    const targetX =
+      col * tileWidth;
+
+    const targetY =
+      row * tileHeight;
+
+
+    const currentX =
+      parseFloat(
+        piece.style.left
+      ) || 0;
+
+    const currentY =
+      parseFloat(
+        piece.style.top
+      ) || 0;
+
+
+    const tolerance =
+      Math.min(
+        tileWidth,
+        tileHeight
+      ) * 0.30;
+
+
+    if (
+      Math.abs(
+        currentX - targetX
+      ) <= tolerance
+      &&
+      Math.abs(
+        currentY - targetY
+      ) <= tolerance
+    ) {
+
+      // SNAP
+
+      piece.style.left =
+        targetX + "px";
+
+      piece.style.top =
+        targetY  let timerId = null;
   let startTime = 0;
   let zCounter = 10;
 
