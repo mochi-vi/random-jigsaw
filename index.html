@@ -1,33 +1,57 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Random Jigsaw</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Random Jigsaw Puzzle</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-  <main class="app">
-    <header>
-      <h1>Random Jigsaw</h1>
-      <div id="timer">00:00</div>
-    </header>
 
-    <section class="reference">
-      <h2>Reference</h2>
-      <img id="preview" alt="Puzzle reference">
-    </section>
+  <div class="preview-section" id="previewSection">
 
-    <section>
-      <div id="message">Loading puzzle…</div>
-      <div id="board" aria-label="Jigsaw puzzle"></div>
-    </section>
+    <button class="preview-toggle" id="previewToggle">
+      <span id="previewText">Preview 👁️</span>
+      <span id="previewArrow">🔽</span>
+    </button>
 
-    <div class="buttons">
-      <button id="shuffle">Shuffle</button>
-      <button id="newPuzzle">New puzzle</button>
+    <div class="preview-content" id="previewContent">
+      <img id="preview" src="" alt="Puzzle Preview">
     </div>
-  </main>
+
+  </div>
+
+  <div class="puzzle-section" id="puzzleSection">
+
+    <div class="controls">
+      <button id="newPuzzle">New Puzzle</button>
+      <button id="shuffle">Shuffle</button>
+    </div>
+
+    <div id="timer">00:00</div>
+
+    <div id="puzzle"></div>
+
+  </div>
+
   <script src="puzzle.js"></script>
+
+  <script>
+    const toggle = document.getElementById("previewToggle");
+    const previewSection = document.getElementById("previewSection");
+    const arrow = document.getElementById("previewArrow");
+
+    toggle.addEventListener("click", () => {
+      previewSection.classList.toggle("minimized");
+
+      if (previewSection.classList.contains("minimized")) {
+        arrow.textContent = "🔼";
+      } else {
+        arrow.textContent = "🔽";
+      }
+    });
+  </script>
+
 </body>
 </html>
