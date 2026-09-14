@@ -1,6 +1,9 @@
-*{box-sizing:border-box}
+*{
+  box-sizing:border-box;
+}
 
-html,body{
+html,
+body{
   margin:0;
   padding:0;
   background:#111;
@@ -16,7 +19,8 @@ body{
   width:min(100%,900px);
   min-height:100vh;
   margin:auto;
-  padding:12px;
+  padding:10px;
+
   display:flex;
   flex-direction:column;
 }
@@ -35,6 +39,242 @@ h1{
 }
 
 #timer{
+  font-variant-numeric:tabular-nums;
+  font-weight:700;
+}
+
+
+/* =========================
+   REFERENCE
+========================= */
+
+.reference{
+  flex-shrink:0;
+  margin-bottom:8px;
+}
+
+.reference-toggle{
+  width:100%;
+
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+  padding:8px 12px;
+
+  background:#222;
+  color:#eee;
+
+  border:1px solid #444;
+  border-radius:9px;
+
+  font:inherit;
+  font-weight:600;
+
+  cursor:pointer;
+}
+
+.reference-toggle:active{
+  transform:scale(.99);
+}
+
+.reference-content{
+  max-height:240px;
+  overflow:hidden;
+
+  margin-top:5px;
+
+  transition:
+    max-height .25s ease,
+    margin .25s ease;
+}
+
+#preview{
+  display:block;
+
+  width:100%;
+  max-height:240px;
+
+  object-fit:contain;
+
+  border-radius:10px;
+
+  background:#222;
+}
+
+
+/* =========================
+   MINIMIZED REFERENCE
+========================= */
+
+.reference.minimized{
+  margin-bottom:4px;
+}
+
+.reference.minimized .reference-content{
+  max-height:0;
+  margin-top:0;
+}
+
+
+/* =========================
+   PUZZLE AREA
+========================= */
+
+.puzzle-section{
+  flex:1;
+
+  min-height:0;
+
+  display:flex;
+  flex-direction:column;
+}
+
+#message{
+  text-align:center;
+
+  min-height:24px;
+
+  flex-shrink:0;
+}
+
+
+/*
+   The board's aspect ratio is set
+   automatically by puzzle.js based
+   on the selected image.
+*/
+
+#board{
+  position:relative;
+
+  width:100%;
+
+  margin:8px auto;
+
+  background:#202020;
+
+  border:1px solid #444;
+  border-radius:10px;
+
+  overflow:hidden;
+
+  touch-action:none;
+
+  flex-shrink:0;
+}
+
+
+/* =========================
+   NORMAL TILE PIECES
+========================= */
+
+.piece{
+  position:absolute;
+
+  user-select:none;
+  -webkit-user-select:none;
+
+  touch-action:none;
+
+  background-repeat:no-repeat;
+
+  border:1px solid rgba(255,255,255,.35);
+
+  cursor:grab;
+
+  box-shadow:
+    0 1px 3px rgba(0,0,0,.5);
+
+  transition:
+    box-shadow .1s ease;
+}
+
+.piece.dragging{
+  cursor:grabbing;
+
+  z-index:9999;
+
+  box-shadow:
+    0 5px 15px rgba(0,0,0,.7);
+}
+
+
+/*
+   Locked pieces cannot be touched.
+*/
+
+.piece.locked{
+  cursor:default;
+
+  box-shadow:none;
+
+  border-color:rgba(255,255,255,.15);
+
+  pointer-events:none;
+}
+
+
+/* =========================
+   BUTTONS
+========================= */
+
+.buttons{
+  display:flex;
+
+  gap:8px;
+
+  justify-content:center;
+
+  margin:8px 0;
+
+  flex-shrink:0;
+}
+
+button{
+  font:inherit;
+
+  padding:9px 15px;
+
+  border:0;
+
+  border-radius:9px;
+
+  cursor:pointer;
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media(max-width:600px){
+
+  .app{
+    padding:7px;
+  }
+
+  .reference-content{
+    max-height:180px;
+  }
+
+  #preview{
+    max-height:180px;
+  }
+
+  .reference.minimized ~ .puzzle-section{
+    flex:1;
+  }
+
+  .buttons{
+    margin:6px 0;
+  }
+
+  button{
+    padding:8px 13px;
+  }
+
+}#timer{
   font-variant-numeric:tabular-nums;
   font-weight:700;
 }
