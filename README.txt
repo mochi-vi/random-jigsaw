@@ -1,7 +1,7 @@
 RANDOM JIGSAW — READY TO HOST
 
 What this version does:
-- 50 pieces (10 x 5)
+- 500 pieces (10 x 50)
 - Randomly chooses one of your 10 image URLs
 - Avoids immediately repeating the previous image
 - Blurred preview page: index.html
