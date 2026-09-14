@@ -1,16 +1,180 @@
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#111;color:#eee;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-body{min-height:100vh}
-.app{width:min(100%,900px);margin:auto;padding:12px}
-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
-h1{font-size:1.35rem;margin:4px 0 10px}
-#timer{font-variant-numeric:tabular-nums;font-weight:700}
-.reference{margin-bottom:12px}
-.reference h2{font-size:.9rem;margin:4px 0}
-#preview{display:block;width:100%;max-height:260px;object-fit:contain;border-radius:10px;filter:none;background:#222}
-#board{position:relative;width:100%;max-width:900px;margin:12px auto;height:min(72vh,620px);min-height:330px;background:#202020;border:1px solid #444;border-radius:12px;overflow:hidden;touch-action:none}
-.piece{position:absolute;user-select:none;-webkit-user-select:none;touch-action:none;background-repeat:no-repeat;border:1px solid #888;border-radius:3px;box-shadow:0 2px 5px #0008;cursor:grab}
-.piece.dragging{cursor:grabbing;z-index:999;box-shadow:0 8px 20px #000b}
-.buttons{display:flex;gap:8px;justify-content:center;margin:12px 0}
-button{font:inherit;padding:10px 16px;border:0;border-radius:9px;cursor:pointer}
-#message{text-align:center;min-height:24px}
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #111;
+  color: white;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+}
+
+/* =========================
+   PREVIEW
+========================= */
+
+.preview-section {
+  width: 100%;
+  height: 30vh;
+  display: flex;
+  flex-direction: column;
+  transition: height 0.3s ease;
+}
+
+.preview-toggle {
+  width: 100%;
+  height: 42px;
+  border: none;
+  background: #222;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.preview-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 5px;
+  overflow: hidden;
+}
+
+.preview-content img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+
+  /* REMOVE BLUR */
+  filter: none;
+}
+
+/* =========================
+   MINIMIZED PREVIEW
+========================= */
+
+.preview-section.minimized {
+  height: 42px;
+}
+
+.preview-section.minimized .preview-content {
+  display: none;
+}
+
+/* =========================
+   PUZZLE
+========================= */
+
+.puzzle-section {
+  width: 100%;
+  height: 70vh;
+  display: flex;
+  flex-direction: column;
+  transition: height 0.3s ease;
+  min-height: 0;
+}
+
+/* When preview is minimized, puzzle gets full screen */
+.preview-section.minimized + .puzzle-section {
+  height: calc(100vh - 42px);
+}
+
+/* =========================
+   CONTROLS
+========================= */
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px;
+  flex-shrink: 0;
+}
+
+.controls button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #333;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.controls button:active {
+  transform: scale(0.97);
+}
+
+#timer {
+  text-align: center;
+  font-size: 14px;
+  padding-bottom: 4px;
+  flex-shrink: 0;
+}
+
+/* =========================
+   PUZZLE BOARD
+========================= */
+
+#puzzle {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* SVG puzzle pieces */
+#puzzle svg {
+  position: absolute;
+  overflow: visible;
+  touch-action: none;
+  user-select: none;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 600px) {
+
+  .preview-section {
+    height: 25vh;
+  }
+
+  .puzzle-section {
+    height: 75vh;
+  }
+
+  .preview-toggle {
+    height: 40px;
+    font-size: 15px;
+  }
+
+  .preview-section.minimized {
+    height: 40px;
+  }
+
+  .preview-section.minimized + .puzzle-section {
+    height: calc(100vh - 40px);
+  }
+
+  .controls {
+    padding: 4px;
+  }
+
+  .controls button {
+    padding: 7px 11px;
+    font-size: 13px;
+  }
+}
