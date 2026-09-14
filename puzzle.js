@@ -1,16 +1,16 @@
 (() => {
   // Put your hosted image URLs here. Keep the order image01...image10 if desired.
   const IMAGE_URLS = [
-    "PASTE_IMAGE_URL_01_HERE",
-    "PASTE_IMAGE_URL_02_HERE",
-    "PASTE_IMAGE_URL_03_HERE",
-    "PASTE_IMAGE_URL_04_HERE",
-    "PASTE_IMAGE_URL_05_HERE",
-    "PASTE_IMAGE_URL_06_HERE",
-    "PASTE_IMAGE_URL_07_HERE",
-    "PASTE_IMAGE_URL_08_HERE",
-    "PASTE_IMAGE_URL_09_HERE",
-    "PASTE_IMAGE_URL_10_HERE"
+    "https://files.catbox.moe/umamaq.jpeg",
+    "https://files.catbox.moe/5uir2d.jpeg",
+    "https://files.catbox.moe/7xuuma.jpeg",
+    "https://files.catbox.moe/nxffrc.jpeg",
+    "https://files.catbox.moe/vcj6n9.png",
+    "https://files.catbox.moe/8fd9ox.jpeg",
+    "https://files.catbox.moe/mb3n6z.jpeg",
+    "https://files.catbox.moe/kuozzs.jpeg",
+    "https://files.catbox.moe/ugvmgm.jpeg",
+    "https://files.catbox.moe/ent79g.jpeg"
   ];
 
   const COLS = 10, ROWS = 5, PIECES = COLS * ROWS;
