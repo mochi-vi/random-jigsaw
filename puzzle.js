@@ -1,7 +1,9 @@
 (() => {
+
   // ==============================
   // YOUR 10 PUZZLE IMAGES
   // ==============================
+
   const IMAGE_URLS = [
     "https://files.catbox.moe/umamaq.jpeg",
     "https://files.catbox.moe/5uir2d.jpeg",
@@ -15,15 +17,14 @@
     "https://files.catbox.moe/ent79g.jpeg"
   ];
 
+
   // ==============================
   // PUZZLE SETTINGS
   // ==============================
+
   const COLS = 10;
   const ROWS = 5;
   const TOTAL = COLS * ROWS;
-
-  // Size of the jigsaw tabs
-  const TAB = 13;
 
   const board = document.getElementById("board");
   const preview = document.getElementById("preview");
@@ -31,10 +32,704 @@
   const timerEl = document.getElementById("timer");
 
   let pieces = [];
+
   let currentImage = null;
+
+  let imageWidth = 1;
+  let imageHeight = 1;
+
+  let solved = false;
+
   let startTime = 0;
   let timerID = null;
-  let solved = false;
+
+  let zIndex = 20;
+
+
+  // ==============================
+  // SHUFFLE
+  // ==============================
+
+  function shuffle(array){
+
+    for(let i = array.length - 1; i > 0; i--){
+
+      const j =
+        Math.floor(Math.random() * (i + 1));
+
+      [array[i], array[j]] =
+        [array[j], array[i]];
+    }
+
+    return array;
+  }
+
+
+  // ==============================
+  // RANDOM IMAGE
+  // ==============================
+
+  function chooseImage(){
+
+    let choices =
+      IMAGE_URLS.filter(
+        url => url !== currentImage
+      );
+
+    if(choices.length === 0){
+      choices = IMAGE_URLS;
+    }
+
+    return choices[
+      Math.floor(Math.random() * choices.length)
+    ];
+  }
+
+
+  // ==============================
+  // TIMER
+  // ==============================
+
+  function formatTime(seconds){
+
+    const mins =
+      Math.floor(seconds / 60);
+
+    const secs =
+      seconds % 60;
+
+    return (
+      String(mins).padStart(2,"0") +
+      ":" +
+      String(secs).padStart(2,"0")
+    );
+  }
+
+
+  function startTimer(){
+
+    clearInterval(timerID);
+
+    startTime = Date.now();
+
+    timerID = setInterval(() => {
+
+      const elapsed =
+        Math.floor(
+          (Date.now() - startTime) / 1000
+        );
+
+      timerEl.textContent =
+        formatTime(elapsed);
+
+    },250);
+  }
+
+
+  // ==============================
+  // SET BOARD SIZE
+  // ==============================
+
+  function setBoardSize(){
+
+    const ratio =
+      imageWidth / imageHeight;
+
+    board.style.aspectRatio =
+      `${imageWidth} / ${imageHeight}`;
+
+    /*
+      Limit the board height so it fits
+      comfortably on the screen.
+    */
+
+    const availableWidth =
+      board.parentElement.clientWidth;
+
+    const maxHeight =
+      window.innerHeight * 0.68;
+
+    let width =
+      availableWidth;
+
+    let height =
+      width / ratio;
+
+    if(height > maxHeight){
+
+      height = maxHeight;
+
+      width = height * ratio;
+    }
+
+    board.style.width =
+      Math.min(
+        width,
+        availableWidth
+      ) + "px";
+
+    board.style.height =
+      height + "px";
+  }
+
+
+  // ==============================
+  // CREATE ONE SQUARE/GRID TILE
+  // ==============================
+
+  function createPiece(
+    index,
+    imageURL,
+    boardWidth,
+    boardHeight
+  ){
+
+    const col =
+      index % COLS;
+
+    const row =
+      Math.floor(index / COLS);
+
+    const pieceW =
+      boardWidth / COLS;
+
+    const pieceH =
+      boardHeight / ROWS;
+
+
+    const piece =
+      document.createElement("div");
+
+    piece.className = "piece";
+
+    piece.dataset.correct = index;
+
+    piece.dataset.locked = "false";
+
+
+    piece.style.width =
+      pieceW + "px";
+
+    piece.style.height =
+      pieceH + "px";
+
+
+    /*
+      Show the correct part of the
+      selected image.
+    */
+
+    piece.style.backgroundImage =
+      `url("${imageURL}")`;
+
+    piece.style.backgroundSize =
+      `${boardWidth}px ${boardHeight}px`;
+
+    piece.style.backgroundPosition =
+      `-${col * pieceW}px -${row * pieceH}px`;
+
+
+    // ==========================
+    // RANDOM START POSITION
+    // ==========================
+
+    const maxX =
+      Math.max(0, boardWidth - pieceW);
+
+    const maxY =
+      Math.max(0, boardHeight - pieceH);
+
+    piece.style.left =
+      Math.random() * maxX + "px";
+
+    piece.style.top =
+      Math.random() * maxY + "px";
+
+
+    // ==========================
+    // DRAGGING
+    // ==========================
+
+    let dragging = false;
+
+    let pointerID = null;
+
+    let offsetX = 0;
+    let offsetY = 0;
+
+
+    piece.addEventListener(
+      "pointerdown",
+      event => {
+
+        if(
+          solved ||
+          piece.dataset.locked === "true"
+        ){
+          return;
+        }
+
+        event.preventDefault();
+
+        dragging = true;
+
+        pointerID =
+          event.pointerId;
+
+        piece.setPointerCapture(
+          event.pointerId
+        );
+
+
+        const rect =
+          piece.getBoundingClientRect();
+
+        offsetX =
+          event.clientX - rect.left;
+
+        offsetY =
+          event.clientY - rect.top;
+
+
+        piece.style.zIndex =
+          ++zIndex;
+
+        piece.classList.add("dragging");
+
+      },
+      {passive:false}
+    );
+
+
+    piece.addEventListener(
+      "pointermove",
+      event => {
+
+        if(
+          !dragging ||
+          event.pointerId !== pointerID
+        ){
+          return;
+        }
+
+        event.preventDefault();
+
+
+        const boardRect =
+          board.getBoundingClientRect();
+
+
+        let x =
+          event.clientX -
+          boardRect.left -
+          offsetX;
+
+        let y =
+          event.clientY -
+          boardRect.top -
+          offsetY;
+
+
+        const maxX =
+          board.clientWidth -
+          piece.offsetWidth;
+
+        const maxY =
+          board.clientHeight -
+          piece.offsetHeight;
+
+
+        x =
+          Math.max(
+            0,
+            Math.min(maxX,x)
+          );
+
+        y =
+          Math.max(
+            0,
+            Math.min(maxY,y)
+          );
+
+
+        piece.style.left =
+          x + "px";
+
+        piece.style.top =
+          y + "px";
+
+      },
+      {passive:false}
+    );
+
+
+    function stopDragging(event){
+
+      if(!dragging){
+        return;
+      }
+
+      if(
+        event &&
+        event.pointerId !== undefined &&
+        event.pointerId !== pointerID
+      ){
+        return;
+      }
+
+
+      dragging = false;
+
+      pointerID = null;
+
+      piece.classList.remove(
+        "dragging"
+      );
+
+
+      checkPiece(piece);
+    }
+
+
+    piece.addEventListener(
+      "pointerup",
+      stopDragging
+    );
+
+    piece.addEventListener(
+      "pointercancel",
+      stopDragging
+    );
+
+
+    board.appendChild(piece);
+
+    return piece;
+  }
+
+
+  // ==============================
+  // CHECK ONE PIECE
+  // ==============================
+
+  function checkPiece(piece){
+
+    if(
+      piece.dataset.locked === "true"
+    ){
+      return;
+    }
+
+
+    const index =
+      Number(piece.dataset.correct);
+
+
+    const col =
+      index % COLS;
+
+    const row =
+      Math.floor(index / COLS);
+
+
+    const pieceW =
+      board.clientWidth / COLS;
+
+    const pieceH =
+      board.clientHeight / ROWS;
+
+
+    const targetX =
+      col * pieceW;
+
+    const targetY =
+      row * pieceH;
+
+
+    const currentX =
+      parseFloat(
+        piece.style.left || 0
+      );
+
+    const currentY =
+      parseFloat(
+        piece.style.top || 0
+      );
+
+
+    /*
+      Piece only needs to be reasonably close.
+      Then it snaps exactly into position.
+    */
+
+    const tolerance =
+      Math.min(
+        pieceW,
+        pieceH
+      ) * 0.28;
+
+
+    if(
+      Math.abs(currentX - targetX)
+        <= tolerance &&
+
+      Math.abs(currentY - targetY)
+        <= tolerance
+    ){
+
+      piece.style.left =
+        targetX + "px";
+
+      piece.style.top =
+        targetY + "px";
+
+
+      // 🔒 PERMANENTLY LOCK IT
+
+      piece.dataset.locked =
+        "true";
+
+      piece.classList.add(
+        "locked"
+      );
+
+
+      piece.style.zIndex =
+        index + 1;
+
+
+      checkSolved();
+    }
+  }
+
+
+  // ==============================
+  // CHECK COMPLETE
+  // ==============================
+
+  function checkSolved(){
+
+    const locked =
+      pieces.filter(
+        piece =>
+          piece.dataset.locked === "true"
+      ).length;
+
+
+    message.textContent =
+      `${locked} / ${TOTAL} pieces placed`;
+
+
+    if(locked === TOTAL){
+
+      solved = true;
+
+      clearInterval(timerID);
+
+      message.textContent =
+        "🎉 Puzzle complete!";
+    }
+  }
+
+
+  // ==============================
+  // LOAD PUZZLE
+  // ==============================
+
+  function loadPuzzle(){
+
+    clearInterval(timerID);
+
+    solved = false;
+
+    pieces = [];
+
+    board.innerHTML = "";
+
+    currentImage =
+      chooseImage();
+
+
+    message.textContent =
+      "Loading puzzle…";
+
+
+    /*
+      Load image first so we know
+      its real width/height.
+    */
+
+    const img =
+      new Image();
+
+
+    img.onload = () => {
+
+      imageWidth =
+        img.naturalWidth;
+
+      imageHeight =
+        img.naturalHeight;
+
+
+      preview.src =
+        currentImage;
+
+
+      setBoardSize();
+
+
+      requestAnimationFrame(() => {
+
+        const boardWidth =
+          board.clientWidth;
+
+        const boardHeight =
+          board.clientHeight;
+
+
+        const order =
+          shuffle(
+            [...Array(TOTAL).keys()]
+          );
+
+
+        order.forEach(index => {
+
+          const piece =
+            createPiece(
+              index,
+              currentImage,
+              boardWidth,
+              boardHeight
+            );
+
+          pieces.push(piece);
+        });
+
+
+        message.textContent =
+          "Hold and drag the pieces into place.";
+
+        startTimer();
+
+      });
+
+    };
+
+
+    img.onerror = () => {
+
+      message.textContent =
+        "Unable to load puzzle image.";
+
+    };
+
+
+    img.src =
+      currentImage;
+  }
+
+
+  // ==============================
+  // SHUFFLE PIECES
+  // ==============================
+
+  document
+    .getElementById("shuffle")
+    .addEventListener(
+      "click",
+      () => {
+
+        if(!pieces.length){
+          return;
+        }
+
+
+        pieces.forEach(piece => {
+
+          /*
+            Locked pieces are NEVER moved.
+          */
+
+          if(
+            piece.dataset.locked === "true"
+          ){
+            return;
+          }
+
+
+          const maxX =
+            board.clientWidth -
+            piece.offsetWidth;
+
+          const maxY =
+            board.clientHeight -
+            piece.offsetHeight;
+
+
+          piece.style.left =
+            Math.random() *
+            Math.max(0,maxX) +
+            "px";
+
+          piece.style.top =
+            Math.random() *
+            Math.max(0,maxY) +
+            "px";
+
+
+          piece.style.zIndex =
+            ++zIndex;
+        });
+
+
+        message.textContent =
+          "Unplaced pieces shuffled 🔀";
+      }
+    );
+
+
+  // ==============================
+  // NEW PUZZLE
+  // ==============================
+
+  document
+    .getElementById("newPuzzle")
+    .addEventListener(
+      "click",
+      loadPuzzle
+    );
+
+
+  // ==============================
+  // RESIZE
+  // ==============================
+
+  window.addEventListener(
+    "resize",
+    () => {
+
+      /*
+        Rebuild only when the screen
+        changes size significantly.
+      */
+
+      if(pieces.length){
+        loadPuzzle();
+      }
+
+    }
+  );
+
+
+  // ==============================
+  // START
+  // ==============================
+
+  loadPuzzle();
+
+})();  let solved = false;
   let zIndex = 20;
 
   // Random number between -1 and 1
